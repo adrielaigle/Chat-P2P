@@ -1,36 +1,102 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Chat P2P</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chat P2P Descentralizado</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  />
 </head>
 <body>
-  <div class="chat-container">
-    <h2>Zap da Turma 🤓☝️</h2>
-    <button id="toggle-dark" title="Alternar modo claro/escuro">🌙</button>
+  <div class="sidebar">
+    <div class="header">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">JD</div>
+        <div class="user-details">
+          <h2 id="username-display">João Silva</h2>
+          <p id="user-status">Online</p>
+        </div>
+      </div>
+    </div>
 
-    <input
-      id="username"
-      placeholder="Seu nome..."
-      aria-label="Nome de usuário"
-    />
-
-    <ul id="messages"></ul>
-
-    <form id="form" action="">
+    <div class="search-container">
+      <i class="fas fa-search"></i>
       <input
-        id="input"
+        type="text"
+        id="search-input"
+        placeholder="Pesquisar chats..."
         autocomplete="off"
-        placeholder="Digite sua mensagem..."
-        aria-label="Digite sua mensagem"
-        inputmode="text"
       />
-      <button>Enviar</button>
-    </form>
+    </div>
+
+    <div class="chats-container">
+      <div class="chats-header">
+        <h3>Conversas</h3>
+        <i class="fas fa-ellipsis-h"></i>
+      </div>
+
+      <div class="chats-list" id="chats-list">
+        <div class="chat-item" id="chat-item-template" style="display: none;">
+          <div class="chat-avatar">A</div>
+          <div class="chat-details">
+            <h4 class="chat-name">Amigo</h4>
+            <p class="chat-last-message">Última mensagem...</p>
+          </div>
+          <span class="chat-time">10:30</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="new-chat-btn" id="new-chat-btn">
+      <i class="fas fa-plus"></i>
+    </button>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <div class="main-chat">
+
+    <div class="chat-header" id="chat-header" style="display:none;">
+      <!-- Nome da conversa ativa aqui -->
+    </div>
+
+    <div class="chat-messages" id="chat-messages" style="display:none;">
+      <!-- Mensagens vão aqui -->
+    </div>
+
+    <div class="message-input-container" style="display:none;">
+      <input
+        type="text"
+        class="message-input"
+        id="message-input"
+        placeholder="Digite sua mensagem..."
+        autocomplete="off"
+      />
+      <button class="send-btn" id="send-btn">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+
+    <div class="welcome-screen" id="welcome-screen">
+      <h2>Bem-vindo ao Chat P2P Descentralizado</h2>
+      <p>Converse diretamente sem intermediários</p>
+      <div class="features">
+        <div class="feature-card">
+          <i class="fas fa-shield-alt"></i>
+          <h3>Segurança</h3>
+          <p>Criptografia ponto a ponto</p>
+        </div>
+        <div class="feature-card">
+          <i class="fas fa-bolt"></i>
+          <h3>Velocidade</h3>
+          <p>Mensagens diretas entre dispositivos</p>
+        </div>
+      </div>
+      <button class="start-chat-btn" id="start-chat-btn"></button>
+    </div>
+  </div>
+
   <script src="client.js"></script>
 </body>
 </html>

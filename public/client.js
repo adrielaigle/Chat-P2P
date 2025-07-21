@@ -1,209 +1,176 @@
-const socket = io();
-let mySocketId = null;
+// Array global para chats
+let chats = [];
+let currentChat = null;
 
-const peers = {}; 
+// Pegando elementos do DOM
+const chatsList = document.getElementById('chats-list');
+const newChatBtn = document.getElementById('new-chat-btn');
+const welcomeScreen = document.getElementById('welcome-screen');
+const chatHeader = document.getElementById('chat-header');
+const chatMessages = document.getElementById('chat-messages');
+const messageInput = document.getElementById('message-input');
+const sendBtn = document.getElementById('send-btn');
 
-const form = document.getElementById('form');
-const input = document.getElementById('input');
-const messages = document.getElementById('messages');
-const usernameInput = document.getElementById('username');
+// Inicializa a interface
+function init() {
+  loadChats();
+  renderChats();
+  showWelcome();
 
-if (localStorage.getItem('chat_username')) {
-  usernameInput.value = localStorage.getItem('chat_username');
-}
-
-usernameInput.addEventListener('change', () => {
-  localStorage.setItem('chat_username', usernameInput.value.trim());
-});
-
-form.addEventListener('submit', function(e) {
-  e.preventDefault();
-
-  const username = usernameInput.value.trim();
-  const message = input.value.trim();
-
-  if (!username) {
-    alert("Por favor, insira seu nome antes de enviar uma mensagem.");
-    usernameInput.focus();
-    return;
-  }
-
-  if (message) {
-    const data = {
-      username,
-      message: convertEmojis(message),
-      id: mySocketId
-    };
-
-    for (const peer of Object.values(peers)) {
-      if (peer.dataChannel.readyState === 'open') {
-        peer.dataChannel.send(JSON.stringify(data));
-      }
-    }
-
-    displayMessage(data); 
-    input.value = '';
-  }
-});
-
-socket.on('connect', () => {
-  mySocketId = socket.id;
-});
-
-socket.on('user-connected', async (peerId) => {
-  if (peerId === mySocketId) return;
-
-  const peer = createPeerConnection(peerId);
-  const dataChannel = peer.createDataChannel("chat");
-
-  setupDataChannel(peerId, dataChannel);
-
-  const offer = await peer.createOffer();
-  await peer.setLocalDescription(offer);
-
-  socket.emit('signal', {
-    to: peerId,
-    offer
-  });
-
-  peers[peerId] = { connection: peer, dataChannel };
-});
-
-socket.on('signal', async (data) => {
-  let peer = peers[data.from]?.connection;
-
-  if (!peer) {
-    peer = createPeerConnection(data.from);
-    peers[data.from] = { connection: peer };
-  }
-
-  if (data.offer) {
-    await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
-    const answer = await peer.createAnswer();
-    await peer.setLocalDescription(answer);
-
-    socket.emit('signal', {
-      to: data.from,
-      answer
-    });
-
-  } else if (data.answer) {
-    await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
-
-  } else if (data.ice) {
-    try {
-      await peer.addIceCandidate(new RTCIceCandidate(data.ice));
-    } catch (err) {
-      console.warn('Erro ao adicionar ICE:', err);
-    }
-  }
-});
-
-socket.on('user-disconnected', (peerId) => {
-  if (peers[peerId]) {
-    peers[peerId].connection.close();
-    delete peers[peerId];
-  }
-});
-
-function createPeerConnection(peerId) {
-  const peer = new RTCPeerConnection({
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-  });
-
-  peer.onicecandidate = (event) => {
-    if (event.candidate) {
-      socket.emit('signal', {
-        to: peerId,
-        ice: event.candidate
-      });
-    }
-  };
-
-  peer.ondatachannel = (event) => {
-    const channel = event.channel;
-    setupDataChannel(peerId, channel);
-    peers[peerId].dataChannel = channel;
-  };
-
-  return peer;
-}
-
-function setupDataChannel(peerId, channel) {
-  channel.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    displayMessage(data);
-  };
-}
-
-function isMyMessage(data) {
-  const myUsername = usernameInput.value.trim();
-  return data.id === mySocketId || data.username === myUsername;
-}
-
-function displayMessage(data) {
-  const wrapper = document.createElement('li');
-  wrapper.classList.add('message-wrapper');
-
-  if (isMyMessage(data)) {
-    wrapper.classList.add('sent');
-  } else {
-    wrapper.classList.add('received');
-  }
-
-  const bubble = document.createElement('div');
-  bubble.classList.add('message');
-
-  const isMine = isMyMessage(data);
-
-  if (!isMine && data.id !== 'sistema') {
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = data.username;
-    nameSpan.classList.add('username');
-    nameSpan.style.color = stringToColor(data.username);
-    bubble.appendChild(nameSpan);
-  }
-
-  const messageSpan = document.createElement('span');
-  messageSpan.innerHTML = data.message;
-  bubble.appendChild(messageSpan);
-
-  wrapper.appendChild(bubble);
-  messages.appendChild(wrapper);
-
-  messages.scrollTo({
-    top: messages.scrollHeight,
-    behavior: 'smooth'
+  // Eventos
+  newChatBtn.addEventListener('click', createNewChat);
+  sendBtn.addEventListener('click', sendMessage);
+  messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
   });
 }
 
-function stringToColor(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-  return "#" + "00000".substring(0, 6 - c.length) + c;
+function showWelcome() {
+  // Exibe a tela de boas-vindas
+  welcomeScreen.style.display = 'block';
+  
+  // Esconde a área do chat
+  chatHeader.style.display = 'none';
+  chatMessages.style.display = 'none';
+  messageInput.parentElement.style.display = 'none'; // Container do input e botão
 }
 
-function convertEmojis(text) {
-  return text
-    .replace(/:\)/g, '😊')
-    .replace(/:\(/g, '😢')
-    .replace(/:o/gi, '😮')
-    .replace(/:D/gi, '😄')
-    .replace(/<3/g, '❤️');
+
+// Simular carregar chats do localStorage ou iniciar vazio
+function loadChats() {
+  const saved = localStorage.getItem('chats');
+  chats = saved ? JSON.parse(saved) : [];
 }
 
-const toggle = document.getElementById('toggle-dark');
-toggle.addEventListener('click', () => {
-  document.body.classList.toggle('dark');
-  const isDark = document.body.classList.contains('dark');
-  toggle.textContent = isDark ? '☀️' : '🌙';
-  localStorage.setItem('dark_mode', isDark);
-});
-
-if (localStorage.getItem('dark_mode') === 'true') {
-  document.body.classList.add('dark');
-  toggle.textContent = '☀️';
+// Salvar chats no localStorage
+function saveChats() {
+  localStorage.setItem('chats', JSON.stringify(chats));
 }
+
+// Renderizar lista de chats
+function renderChats() {
+  chatsList.innerHTML = '';
+
+  chats.forEach(chat => {
+    const chatItem = document.createElement('div');
+    chatItem.className = 'chat-item';
+    if (currentChat && currentChat.id === chat.id) chatItem.classList.add('active');
+
+    const initials = chat.name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+
+    chatItem.innerHTML = `
+      <div class="chat-avatar">${initials}</div>
+      <div class="chat-details">
+        <h4>${chat.name}</h4>
+        <p>${chat.messages && chat.messages.length > 0 ? chat.messages[chat.messages.length -1].content : 'Nenhuma mensagem ainda'}</p>
+      </div>
+      <span class="chat-time">${chat.lastTime || ''}</span>
+    `;
+
+    chatItem.addEventListener('click', () => openChat(chat));
+    chatsList.appendChild(chatItem);
+  });
+}
+
+// Criar novo chat
+function createNewChat() {
+  const name = prompt('Nome do novo chat:');
+  if (!name || !name.trim()) return;
+
+  const newChat = {
+    id: Date.now(),
+    name: name.trim(),
+    messages: []
+  };
+
+  chats.unshift(newChat);
+  saveChats();
+  renderChats();
+  openChat(newChat);
+}
+
+// Abrir chat selecionado
+function openChat(chat) {
+  currentChat = chat;
+
+  // Mostrar o chat e esconder boas vindas
+  welcomeScreen.style.display = 'none';
+  chatHeader.style.display = 'flex';
+  chatMessages.style.display = 'block';
+  messageInput.parentElement.style.display = 'flex';
+
+  // Atualizar header do chat
+  const initials = chat.name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  chatHeader.innerHTML = `
+    <div class="chat-header-avatar">${initials}</div>
+    <div class="chat-header-info">
+      <h3>${chat.name}</h3>
+      <p>Online • P2P</p>
+    </div>
+  `;
+
+  // Renderizar mensagens
+  renderMessages(chat);
+  renderChats(); // atualizar seleção da lista
+}
+
+// Renderizar mensagens do chat
+function renderMessages(chat) {
+  chatMessages.innerHTML = '';
+
+  chat.messages.forEach(msg => {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', msg.sent ? 'sent' : 'received');
+
+    messageDiv.innerHTML = `
+      <div class="message-content">
+        <p>${msg.content}</p>
+        <span class="timestamp">${msg.time}</span>
+      </div>
+    `;
+
+    chatMessages.appendChild(messageDiv);
+  });
+
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+
+// Enviar mensagem no chat aberto
+function sendMessage() {
+  if (!currentChat) return;
+
+  const content = messageInput.value.trim();
+  if (!content) return;
+
+  const newMsg = {
+    id: Date.now(),
+    content,
+    time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+    sent: true
+  };
+
+  currentChat.messages.push(newMsg);
+  currentChat.lastTime = 'Agora';
+
+  saveChats();
+  renderMessages(currentChat);
+  renderChats();
+
+  messageInput.value = '';
+
+  // Aqui você pode integrar o envio via WebRTC/Socket que já tem no seu client.js
+}
+
+document.addEventListener('DOMContentLoaded', init);
