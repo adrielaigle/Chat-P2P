@@ -75,15 +75,18 @@ export function renderMessages(chat) {
 
   chat.messages.forEach(msg => {
     const messageDiv = document.createElement('div');
-    messageDiv.classList.add('discord-message');
+    const initials = msg.sent ? 'Você'.slice(0,2).toUpperCase() : 
+  chat.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
-    messageDiv.innerHTML = `
-      <div class="message-meta">
-        <span class="message-user">${msg.sent ? 'Você' : chat.name}</span>
-        <span class="message-time">${msg.time}</span>
-      </div>
-      <div class="message-text">${msg.content}</div>
-    `;
+  messageDiv.innerHTML = `
+  <div class="message-meta">
+    <div class="message-avatar">${initials}</div>
+    <span class="message-user">${msg.sent ? 'Você' : chat.name}</span>
+    <span class="message-time">${msg.time}</span>
+  </div>
+  <div class="message-text">${msg.content}</div>
+`;
+
 
     chatMessages.appendChild(messageDiv);
   });

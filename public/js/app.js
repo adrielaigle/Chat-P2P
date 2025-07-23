@@ -1,54 +1,54 @@
 import { 
-  loadChats, saveChats, getChats, addChat, deleteChat 
-} from '../chatManager.js';
+  setupUIEventListeners, 
+  renderChats, 
+  renderMessages, 
+  showWelcomeScreen, 
+  showChatScreen,
+  updateUserUI,
+  setupChangeUsernameButton,
+  showUsernameModal
+} from './uiManager.js';
 
-import { 
-  renderChats, renderMessages, showWelcomeScreen, showChatScreen, setupUIEventListeners,
-  showUsernameModal, updateUserUI, setupChangeUsernameButton
-} from '../uiManager.js';
-
+let chats = [];
 let currentChat = null;
 
-function init() {
-  const savedName = localStorage.getItem('chat_username');
-
-  if (!savedName) {
-    // Mostrar modal para usuário digitar nome
-    showUsernameModal(() => {
-      // Callback opcional, quando o nome for salvo, inicia o app normalmente
-      const name = localStorage.getItem('chat_username');
-      updateUserUI(name);
-      setupChangeUsernameButton();
-      loadChats();
-      renderChats(getChats());
-      showWelcomeScreen();
-      setupListeners();
-    });
-  } else {
-    // Se já tem nome salvo, só atualiza a UI e continua
-    updateUserUI(savedName);
-    setupChangeUsernameButton();
-    loadChats();
-    renderChats(getChats());
-    showWelcomeScreen();
-    setupListeners();
-  }
+// Gerenciamento de Chats
+export function loadChats() {
+  const saved = localStorage.getItem('chats');
+  chats = saved ? JSON.parse(saved) : [];
 }
 
-function setupListeners() {
-  setupUIEventListeners({
-    onCreateChat: handleCreateChat,
-    onOpenChat: handleOpenChat,
-    onDeleteChat: handleDeleteChat,
-    onSendMessage: handleSendMessage,
-  });
+export function saveChats() {
+  localStorage.setItem('chats', JSON.stringify(chats));
 }
+
+export function getChats() {
+  return chats;
+}
+
+export function addChat(name) {
+  const newChat = {
+    id: Date.now(),
+    name,
+    messages: []
+  };
+  chats.unshift(newChat);
+  saveChats();
+  return newChat;
+}
+
+export function deleteChat(chatId) {
+  chats = chats.filter(c => c.id !== chatId);
+  saveChats();
+}
+
+// Funções para callbacks:
 
 function handleCreateChat(name) {
   if (!name) return;
   const newChat = addChat(name);
   renderChats(getChats());
-  openChat(newChat);
+  handleOpenChat(newChat.id);
 }
 
 function handleOpenChat(chatId) {
@@ -56,7 +56,7 @@ function handleOpenChat(chatId) {
   if (!currentChat) return;
   showChatScreen(currentChat);
   renderMessages(currentChat);
-  renderChats(getChats());
+  renderChats(getChats(), currentChat.id);
 }
 
 function handleDeleteChat(chatId) {
@@ -74,20 +74,44 @@ function handleSendMessage(message) {
   currentChat.messages.push({
     id: Date.now(),
     content: message,
-    time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     sent: true
   });
 
   saveChats();
   renderMessages(currentChat);
-  renderChats(getChats());
+  renderChats(getChats(), currentChat.id);
 }
 
-function openChat(chat) {
-  currentChat = chat;
-  showChatScreen(currentChat);
-  renderMessages(currentChat);
-  renderChats(getChats());
-}
+// Agora sim, registra os listeners
+setupUIEventListeners({
+  onCreateChat: handleCreateChat,
+  onOpenChat: handleOpenChat,
+  onDeleteChat: handleDeleteChat,
+  onSendMessage: handleSendMessage,
+});
 
-document.addEventListener('DOMContentLoaded', init);
+// Inicialização do nome do usuário
+document.addEventListener('DOMContentLoaded', () => {
+  const savedName = localStorage.getItem('chat_username');
+
+  if (savedName) {
+    updateUserUI(savedName);
+    setupChangeUsernameButton();
+  }
+
+  // Só exibe o modal e atualiza se o campo for preenchido
+  showUsernameModal(() => {
+    const updatedName = localStorage.getItem('chat_username');
+    if (updatedName) {
+      updateUserUI(updatedName);
+    }
+  });
+
+  // Também pode carregar os chats e renderizar:
+  loadChats();
+  renderChats(getChats());
+
+  // Opcional: mostrar tela de boas-vindas se não tiver chat aberto
+  if (!currentChat) showWelcomeScreen();
+});

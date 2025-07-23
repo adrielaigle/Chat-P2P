@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Teste Avatar e Nome</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+  }
+  .user-avatar {
+    width: 60px;
+    height: 60px;
+    background-color: #2563eb;
+    color: white;
+    font-weight: bold;
+    font-size: 28px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+    margin-bottom: 10px;
+  }
+  #username-display {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+  .username-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    display: none;
+  }
+  .username-modal-content {
+    background: white;
+    padding: 30px 40px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 320px;
+    width: 90%;
+  }
+  #username-input {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 16px;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    outline-offset: 2px;
+  }
+  #username-submit-btn {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    font-size: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #username-submit-btn:hover {
+    background-color: #1e40af;
+  }
+</style>
+</head>
+<body>
+
+<div class="user-avatar" id="user-avatar">JD</div>
+<div id="username-display">João Silva</div>
+
+<div id="username-modal" class="username-modal">
+  <div class="username-modal-content">
+    <h2>Bem-vindo!</h2>
+    <p>Por favor, digite seu nome de usuário para começar:</p>
+    <input type="text" id="username-input" placeholder="Seu nome" maxlength="20" />
+    <button id="username-submit-btn">Salvar</button>
+  </div>
+</div>
+
+<script>
+  const userAvatar = document.getElementById('user-avatar');
+  const usernameDisplay = document.getElementById('username-display');
+  const modal = document.getElementById('username-modal');
+  const input = document.getElementById('username-input');
+  const btn = document.getElementById('username-submit-btn');
+
+  function updateUserUI(name) {
+    console.log('Atualizando avatar com nome:', name);
+    const initials = name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+    userAvatar.textContent = initials;
+    usernameDisplay.textContent = name;
+  }
+
+  function showUsernameModal() {
+    modal.style.display = 'flex';
+    input.value = '';
+    input.focus();
+  }
+
+  btn.onclick = () => {
+    const name = input.value.trim();
+    if (!name) {
+      alert('Por favor, digite um nome válido.');
+      return;
+    }
+    localStorage.setItem('chat_username', name);
+    updateUserUI(name);
+    modal.style.display = 'none';
+  };
+
+  input.onkeypress = (e) => {
+    if (e.key === 'Enter') {
+      btn.click();
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedName = localStorage.getItem('chat_username');
+    if (savedName) {
+      updateUserUI(savedName);
+    } else {
+      showUsernameModal();
+    }
+  });
+</script>
+
+</body>
+</html>
