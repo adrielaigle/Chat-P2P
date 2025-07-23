@@ -1,6 +1,3 @@
-
-const themeToggle = document.getElementById('theme-toggle');
-const body = document.body;
 const chatsList = document.getElementById('chats-list');
 const mainChat = document.querySelector('.main-chat');
 const welcomeScreen = document.getElementById('welcome-screen');
@@ -18,222 +15,233 @@ let chats = [];
 let currentChat = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    initTheme();
-
-    loadUserData();
-
-    loadChats();
-
-    setupEventListeners();
+  loadUserData();
+  loadChats();
+  setupEventListeners();
+  showWelcomeScreen();
 });
 
-function initTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        body.classList.add('dark-mode');
-        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-    }
-
-    themeToggle.addEventListener('click', () => {
-        body.classList.toggle('dark-mode');
-
-        if (body.classList.contains('dark-mode')) {
-            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-            localStorage.setItem('theme', 'dark');
-        } else {
-            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-            localStorage.setItem('theme', 'light');
-        }
-    });
-}
-
 function loadUserData() {
-    const savedName = localStorage.getItem('chat_username') || 'Usuário';
-    const initials = savedName
-        .split(' ')
-        .map(n => n[0])
-        .join('')
-        .substring(0, 2)
-        .toUpperCase();
+  const savedName = localStorage.getItem('chat_username') || 'Usuário';
+  const initials = savedName
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
 
-    userAvatar.textContent = initials;
-    usernameDisplay.textContent = savedName;
+  userAvatar.textContent = initials;
+  usernameDisplay.textContent = savedName;
 }
 
 function loadChats() {
-    // Simular carregamento de chats do armazenamento local
-    const savedChats = JSON.parse(localStorage.getItem('chats')) || [
-        { id: 1, name: "Marketing Pessoal", unread: 2 },
-        { id: 2, name: "Projeto Finanças", unread: 0 },
-        { id: 3, name: "Evento Corporativo", unread: 0 }
-    ];
+  const savedChats = JSON.parse(localStorage.getItem('chats')) || [
+    { id: 1, name: "Marketing Pessoal", unread: 2, messages: [
+      { content: "Bem-vindo ao grupo!", time: "09:00", sent: false },
+      { content: "Obrigado!", time: "09:05", sent: true },
+    ] },
+    { id: 2, name: "Projeto Finanças", unread: 0, messages: [] },
+    { id: 3, name: "Evento Corporativo", unread: 0, messages: [] }
+  ];
 
-    chats = savedChats;
-    renderChats();
+  chats = savedChats;
+  renderChats();
 }
 
 function renderChats() {
-    chatsList.innerHTML = '';
+  chatsList.innerHTML = '';
 
-    chats.forEach(chat => {
-        const initials = chat.name
-            .split(' ')
-            .map(n => n[0])
-            .join('')
-            .substring(0, 2)
-            .toUpperCase();
+  chats.forEach(chat => {
+    const chatItem = document.createElement('div');
+    chatItem.classList.add('chat-item');
+    if (currentChat && currentChat.id === chat.id) chatItem.classList.add('active');
 
-        const chatItem = document.createElement('div');
-        chatItem.classList.add('chat-item');
-        if (currentChat && currentChat.id === chat.id) chatItem.classList.add('active');
-        chatItem.dataset.id = chat.id;
+    const initials = chat.name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase();
 
-        chatItem.innerHTML = `
-            <div class="chat-avatar">${initials}</div>
-            <div class="chat-info">
-                <h4>${chat.name}</h4>
-                <p>${chat.lastMessage || 'Nenhuma mensagem ainda'}</p>
-            </div>
-            <div class="chat-meta">
-                <div class="chat-time">${chat.lastTime || ''}</div>
-                ${chat.unread > 0 ? `<div class="chat-badge">${chat.unread}</div>` : ''}
-            </div>
-        `;
+    chatItem.innerHTML = `
+      <div class="chat-avatar">${initials}</div>
+      <div class="chat-details">
+        <h4 class="chat-name">${chat.name}</h4>
+        <p class="chat-last-message">${chat.lastMessage || ''}</p>
+      </div>
+      <span class="chat-time">${chat.lastTime || ''}</span>
+      <button class="delete-chat-btn" title="Apagar chat"><i class="fas fa-trash"></i></button>
+    `;
 
-        chatItem.addEventListener('click', () => openChat(chat));
-        chatsList.appendChild(chatItem);
+    // Clique no chat para abrir
+    chatItem.addEventListener('click', () => openChat(chat));
+
+    // Clique no botão apagar — precisa evitar que abra o chat ao clicar no botão
+    chatItem.querySelector('.delete-chat-btn').addEventListener('click', (e) => {
+      e.stopPropagation(); // evita abrir o chat
+
+      const confirmDelete = confirm(`Quer apagar o chat "${chat.name}"?`);
+      if (confirmDelete) {
+        deleteChat(chat.id);
+      }
     });
+
+    chatsList.appendChild(chatItem);
+  });
 }
 
-function setupEventListeners() {
-    newChatBtn.addEventListener('click', createNewChat);
+function deleteChat(chatId) {
+  // Remove chat do array
+  chats = chats.filter(c => c.id !== chatId);
 
-    sendBtn.addEventListener('click', () => {
-        if (currentChat) sendMessage();
-    });
+  // Se o chat aberto era esse, fecha ele e mostra welcome
+  if (currentChat && currentChat.id === chatId) {
+    currentChat = null;
+    chatHeader.style.display = 'none';
+    chatMessages.style.display = 'none';
+    messageInputContainer.style.display = 'none';
+    welcomeScreen.style.display = 'flex';
+  }
 
-    messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && currentChat) sendMessage();
-    });
+  saveChats();
+  renderChats();
 }
 
-function createNewChat() {
-    const chatName = prompt("Nome do novo chat:");
-    if (chatName && chatName.trim() !== '') {
-        const newChat = {
-            id: Date.now(),
-            name: chatName.trim(),
-            unread: 0,
-            messages: []
-        };
+function getInitials(name) {
+  return name
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+}
 
-        chats.unshift(newChat);
-        saveChats();
-        renderChats();
-        openChat(newChat);
-    }
+function getLastMessagePreview(chat) {
+  if (!chat.messages || chat.messages.length === 0) return 'Nenhuma mensagem';
+  const lastMsg = chat.messages[chat.messages.length - 1];
+  return (lastMsg.sent ? 'Você: ' : '') + lastMsg.content.slice(0, 30) + (lastMsg.content.length > 30 ? '...' : '');
 }
 
 function openChat(chat) {
-    currentChat = chat;
+  currentChat = chat;
 
-    // Atualizar lista de chats
-    renderChats();
+  // Atualiza header da conversa
+  chatHeader.style.display = 'flex';
+  chatHeader.innerHTML = `
+    <div class="chat-header-avatar">${getInitials(chat.name)}</div>
+    <div class="chat-header-info">
+      <h3>${chat.name}</h3>
+      <p>Online • P2P</p>
+    </div>
+  `;
 
-    // Esconder tela de boas-vindas
-    welcomeScreen.style.display = 'none';
+  // Exibir mensagens
+  chatMessages.style.display = 'flex';
+  renderMessages(chat);
 
-    // Mostrar área de chat
-    chatHeader.style.display = 'flex';
-    chatMessages.style.display = 'flex';
-    messageInputContainer.style.display = 'flex';
+  // Mostrar input
+  messageInputContainer.style.display = 'flex';
+  welcomeScreen.style.display = 'none';
 
-    // Configurar header do chat
-    const initials = chat.name
-        .split(' ')
-        .map(n => n[0])
-        .join('')
-        .substring(0, 2)
-        .toUpperCase();
+  // Atualizar lista (para remover notificações, etc)
+  renderChats();
+}
 
-    chatHeader.innerHTML = `
-        <div class="chat-header-avatar">${initials}</div>
-        <div class="chat-header-info">
-            <h3>${chat.name}</h3>
-            <p>Online • P2P</p>
+function renderMessages(chat) {
+  chatMessages.innerHTML = '';
+
+  if (!chat.messages || chat.messages.length === 0) {
+    chatMessages.innerHTML = `<div class="empty-chat">
+      <p>Nenhuma mensagem ainda</p>
+      <small>Envie a primeira mensagem para iniciar a conversa</small>
+    </div>`;
+    return;
+  }
+
+  chat.messages.forEach(msg => {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('discord-message');
+
+    const initials = (msg.sent ? 'Você' : chat.name)
+      .split(' ')
+      .map(w => w[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+
+    messageDiv.innerHTML = `
+      <div class="message-header">
+        <div class="avatar">${initials}</div>
+        <div class="meta">
+          <span class="message-user">${msg.sent ? 'Você' : chat.name}</span>
+          <span class="message-time">${msg.time}</span>
         </div>
-        <div class="chat-actions">
-            <button class="chat-action-btn"><i class="fas fa-phone-alt"></i></button>
-            <button class="chat-action-btn"><i class="fas fa-video"></i></button>
-            <button class="chat-action-btn"><i class="fas fa-info-circle"></i></button>
-        </div>
+      </div>
+      <div class="message-text">${msg.content}</div>
     `;
 
-    // Carregar mensagens
-    chatMessages.innerHTML = '';
+    chatMessages.appendChild(messageDiv);
+  });
 
-    if (chat.messages && chat.messages.length > 0) {
-        chat.messages.forEach(msg => {
-            const messageElement = createMessageElement(msg);
-            chatMessages.appendChild(messageElement);
-        });
-    } else {
-        chatMessages.innerHTML = `
-            <div class="empty-chat">
-                <p>Nenhuma mensagem ainda</p>
-                <small>Envie a primeira mensagem para iniciar a conversa</small>
-            </div>
-        `;
-    }
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
 
-    // Scrolla pro fim
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+function setupEventListeners() {
+  newChatBtn.addEventListener('click', createNewChat);
+
+  sendBtn.addEventListener('click', () => {
+    if (currentChat) sendMessage();
+  });
+
+  messageInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && currentChat) sendMessage();
+  });
+}
+
+function createNewChat() {
+  const chatName = prompt("Nome do novo chat:");
+  if (chatName && chatName.trim() !== '') {
+    const newChat = {
+      id: Date.now(),
+      name: chatName.trim(),
+      unread: 0,
+      messages: []
+    };
+    chats.unshift(newChat);
+    saveChats();
+    renderChats();
+    openChat(newChat);
+  }
 }
 
 function sendMessage() {
-    const content = messageInput.value.trim();
-    if (content) {
-        const newMessage = {
-            id: Date.now(),
-            content,
-            sender: 'Você',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            sent: true
-        };
+  const content = messageInput.value.trim();
+  if (!content) return;
 
-        // Adicionar ao chat atual
-        currentChat.messages = currentChat.messages || [];
-        currentChat.messages.push(newMessage);
+  const newMessage = {
+    content,
+    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    sent: true
+  };
 
-        // Atualizar último mensagem
-        currentChat.lastMessage = content;
-        currentChat.lastTime = 'Agora';
+  if (!currentChat.messages) currentChat.messages = [];
+  currentChat.messages.push(newMessage);
 
-        // Salvar e renderizar
-        saveChats();
-        renderChats();
+  saveChats();
+  renderMessages(currentChat);
+  renderChats();
 
-        // Adicionar ao DOM
-        chatMessages.appendChild(createMessageElement(newMessage));
-
-        // Limpar input e scrollar para baixo
-        messageInput.value = '';
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-}
-
-function createMessageElement(message) {
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message', message.sent ? 'sent' : 'received');
-
-    messageElement.innerHTML = `
-        ${message.content}
-        <div class="message-time">${message.time}</div>
-    `;
-
-    return messageElement;
+  messageInput.value = '';
+  chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function saveChats() {
-    localStorage.setItem('chats', JSON.stringify(chats));
+  localStorage.setItem('chats', JSON.stringify(chats));
+}
+
+function showWelcomeScreen() {
+  welcomeScreen.style.display = 'flex';
+  chatHeader.style.display = 'none';
+  chatMessages.style.display = 'none';
+  messageInputContainer.style.display = 'none';
 }

@@ -131,13 +131,14 @@ function renderMessages(chat) {
 
   chat.messages.forEach(msg => {
     const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message', msg.sent ? 'sent' : 'received');
+    messageDiv.classList.add('discord-message');
 
     messageDiv.innerHTML = `
-      <div class="message-content">
-        <p>${msg.content}</p>
-        <span class="timestamp">${msg.time}</span>
+      <div class="message-meta">
+        <span class="message-user">${msg.sent ? 'Você' : chat.name}</span>
+        <span class="message-time">${msg.time}</span>
       </div>
+      <div class="message-text">${msg.content}</div>
     `;
 
     chatMessages.appendChild(messageDiv);
@@ -145,7 +146,6 @@ function renderMessages(chat) {
 
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
-
 
 // Enviar mensagem no chat aberto
 function sendMessage() {
