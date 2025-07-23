@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Chat P2P Descentralizado</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="/public/css/styles.css" />
+  <link rel="stylesheet" href="/public/css/usuarioCaixa.css">
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -39,7 +40,7 @@
       </div>
 
       <div class="chats-list" id="chats-list">
-        <!-- Chats aparecem aqui via JS -->
+        <!-- Chats serão renderizados aqui pelo JavaScript -->
       </div>
     </div>
 
@@ -49,13 +50,12 @@
   </div>
 
   <div class="main-chat">
-
     <div class="chat-header" id="chat-header" style="display:none;">
-      <!-- Nome da conversa ativa aqui -->
+      <!-- Nome da conversa ativa com avatar e ações -->
     </div>
 
     <div class="chat-messages" id="chat-messages" style="display:none;">
-      <!-- Mensagens vão aqui -->
+      <!-- Mensagens vão ser inseridas aqui pelo JavaScript -->
     </div>
 
     <div class="message-input-container" style="display:none;">
@@ -89,7 +89,15 @@
       <button class="start-chat-btn" id="start-chat-btn"></button>
     </div>
   </div>
+  <div id="username-modal" class="username-modal">
+  <div class="username-modal-content">
+    <h2>Bem-vindo!</h2>
+    <p>Por favor, digite seu nome de usuário para começar:</p>
+    <input type="text" id="username-input" placeholder="Seu nome" maxlength="20" />
+    <button id="username-submit-btn">Salvar</button>
+  </div>
+</div>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
