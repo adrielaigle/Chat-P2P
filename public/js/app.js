@@ -9,6 +9,8 @@ import {
   showUsernameModal
 } from './uiManager.js';
 
+import {setupEmojiPicker} from './emojiPicker.js';
+
 let chats = [];
 let currentChat = null;
 
@@ -114,4 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Opcional: mostrar tela de boas-vindas se não tiver chat aberto
   if (!currentChat) showWelcomeScreen();
+
+  setupEmojiPicker();
 });

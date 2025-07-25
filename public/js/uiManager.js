@@ -24,12 +24,16 @@ export function setupUIEventListeners(cb) {
     }
   });
 
-  messageInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter' && callbacks.onSendMessage) {
-      callbacks.onSendMessage(messageInput.value.trim());
+  messageInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault(); 
+    const message = messageInput.value.trim();
+    if (message && callbacks.onSendMessage) {
+      callbacks.onSendMessage(message);
       messageInput.value = '';
     }
-  });
+  }
+ });
 }
 
 export function renderChats(chats, activeChatId = null) {
